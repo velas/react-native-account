@@ -2,12 +2,12 @@
   "compilerOptions": {
     "baseUrl": "./",
     "paths": {
-      "react-native-account": ["./src/index"]
+      "@velas/react-native-account": ["./src/index"]
     },
     "allowUnreachableCode": false,
     "allowUnusedLabels": false,
     "esModuleInterop": true,
-    "importsNotUsedAsValues": "error",
+    "importsNotUsedAsValues": "remove",
     "forceConsistentCasingInFileNames": true,
     "jsx": "react",
     "lib": ["esnext"],

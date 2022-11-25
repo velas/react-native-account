@@ -1,7 +1,7 @@
 {
-  "name": "react-native-account",
+  "name": "@velas/react-native-account",
   "version": "0.1.0",
-  "description": "test",
+  "description": "Velas Account SDK for React Native",
   "main": "lib/commonjs/index",
   "module": "lib/module/index",
   "types": "lib/typescript/index.d.ts",
@@ -26,9 +26,7 @@
     "typescript": "tsc --noEmit",
     "lint": "eslint \"**/*.{js,ts,tsx}\"",
     "prepare": "bob build",
-    "release": "release-it",
-    "example": "yarn --cwd example",
-    "bootstrap": "yarn example && yarn && yarn example pods"
+    "release": "release-it"
   },
   "keywords": [
     "react-native",
@@ -146,5 +144,23 @@
         }
       ]
     ]
+  },
+  "dependencies": {
+    "@react-native-async-storage/async-storage": "^1.17.11",
+    "@velas/account-agent": "^0.8.0",
+    "@velas/web3": "^0.1.15",
+    "axios": "^1.1.3",
+    "bip39": "^3.0.4",
+    "bs58": "^5.0.0",
+    "crypto-hash": "1.3.0",
+    "crypto-js": "^4.1.1",
+    "ed25519-hd-key": "^1.3.0",
+    "eth-balance-checker": "^0.2.0",
+    "from-exponential": "^1.1.1",
+    "latinize": "^0.5.0",
+    "react-native-device-info": "^10.3.0",
+    "react-native-randombytes": "^3.6.1",
+    "react-native-sensitive-info": "^5.5.8",
+    "web3": "^1.8.1"
   }
 }

@@ -1,15 +1,15 @@
-# react-native-account
+# @velas/react-native-account
 Velas Account SDK for React Native
 ## Installation
 
 ```sh
-npm install react-native-account
+npm install @velas/react-native-account
 ```
 
 ## Usage
 
 ```js
-import { multiply } from "react-native-account";
+import { multiply } from "@velas/react-native-account";
 
 // ...
 
