@@ -1,18 +1,17 @@
 import latinize from 'latinize'
 import DeviceInfo from 'react-native-device-info'
-import config from 'src/config'
-import transaction from 'src/modules/transaction'
+import { getAgent } from '../../config'
+import { keys, storage } from '../../helpers'
+import transaction from '../../modules/transaction'
+import { IAccount, IKeypair, ISponsor, NetworkType, OwnerType } from '../../typings/types'
 import {
-  IAccount,
-  IEnvironment,
-  IKeypair,
-  ISponsor,
-  NetworkType,
-  OwnerType,
-} from 'src/typings/types'
-
-import { keys, storage } from 'src/helpers'
-import { getAccountInfo, getVAccount } from './accounts'
+  getAccountInfo,
+  getAccountsByMnemonic,
+  getAccountTransactions,
+  getAllAccounts,
+  getKeychainAccounts,
+  getVAccount,
+} from './accounts'
 
 class Account {
   private _deviceName: string = ''
@@ -42,8 +41,10 @@ class Account {
     try {
       const [masterKey, opKey] = await Promise.all([keys.generate.keys(), keys.generate.keys()])
 
-      const env = config[network] as IEnvironment
-      const address = await env.agent.provider.client.findAccountAddressWithPublicKey(
+      storage.set(masterKey.publicKey, masterKey, '-master-key') // save master keys
+
+      const agent = getAgent(network)
+      const address = await agent.provider.client.findAccountAddressWithPublicKey(
         masterKey.publicKey
       )
 
@@ -101,7 +102,7 @@ class Account {
   }
 
   private _addAddress = async (
-    data: {
+    params: {
       scopes?: []
       address: string
       agentType?: string
@@ -111,36 +112,31 @@ class Account {
     },
     sponsor?: ISponsor
   ) => {
-    let vAccount = data.account
-    let secretKey = data.accountSecretKey
+    let vAccount = params.account
+    let secretKey = params.accountSecretKey
 
     if (secretKey) {
     } else {
-      vAccount = data.account ?? (await getVAccount(data.address))
+      vAccount = params.account ?? (await getVAccount(params.address))
       if (!vAccount) return { status: 'failed', error: 'Account not found' }
 
-      const vAccountData = await getAccountInfo(data.address)
+      const vAccountData = await getAccountInfo({ address: params.address })
 
       const vAccountHasKeys = vAccountData.data?.owner_keys?.length > 0
-      if (!vAccountHasKeys) await this._initialize({ address: data.address }, sponsor)
+      if (!vAccountHasKeys) await this._initialize({ address: params.address }, sponsor)
 
-      const vAccountOpKey = (await storage.get(
-        vAccount.opKeyPublicKey,
-        '-op-key'
-      )) as unknown as IKeypair
-
-      secretKey = vAccountOpKey.secretKey
+      secretKey = vAccount.opKeySecretKey
     }
 
     const response = await transaction.send(
       vAccount as unknown as IAccount,
       'addOperationalAddressTransaction',
       {
-        scopes: data.scopes,
-        velas_account: data.address,
+        scopes: params.scopes,
+        velas_account: params.address,
         transaction_signer: secretKey,
-        agent_type: data.agentType ?? this._deviceName,
-        new_operational_public_key: data.operationalKey,
+        agent_type: params.agentType ?? this._deviceName,
+        new_operational_public_key: params.operationalKey,
       },
       sponsor
     )
@@ -149,7 +145,7 @@ class Account {
   }
 
   private _extendScopes = async (
-    data: {
+    params: {
       scopes: []
       opKey: string
       address: string
@@ -157,23 +153,18 @@ class Account {
     },
     sponsor?: ISponsor
   ) => {
-    const vAccount = await getVAccount(data.address)
+    const vAccount = await getVAccount(params.address)
     if (!vAccount) return { status: 'failed', error: 'Account not found' }
-
-    const vAccountOpKey = (await storage.get(
-      vAccount.opKeyPublicKey,
-      '-op-key'
-    )) as unknown as IKeypair
 
     const response = await transaction.send(
       vAccount,
       'extendOperationalScopesTransaction',
       {
-        op_key: data.opKey,
-        scopes: data.scopes,
+        op_key: params.opKey,
+        scopes: params.scopes,
         account: vAccount.address,
-        agent_type: data.agentType ?? this._deviceName,
-        secretOperationalOrOwner: vAccountOpKey.secretKey,
+        agent_type: params.agentType ?? this._deviceName,
+        secretOperationalOrOwner: vAccount.opKeySecretKey,
       },
       sponsor
     )
@@ -182,25 +173,20 @@ class Account {
   }
 
   private _removeAddress = async (
-    data: {
+    params: {
       address: string
       operationalKey: string
     },
     sponsor?: ISponsor
   ) => {
-    const vAccount = await getVAccount(data.address)
+    const vAccount = await getVAccount(params.address)
     if (!vAccount) return { status: 'failed', error: 'Account not found' }
 
-    const vAccountData = await getAccountInfo(data.address)
+    const vAccountData = await getAccountInfo({ address: params.address })
     const vAccountHasKeys = vAccountData.data?.owner_keys?.length > 0
     const vAccountOpKeys = vAccountData?.data?.operational_keys || []
 
-    const vAccountOpKey = (await storage.get(
-      vAccount.opKeyPublicKey,
-      '-op-key'
-    )) as unknown as IKeypair
-
-    if (!vAccountHasKeys || !vAccountOpKeys[data.operationalKey]) {
+    if (!vAccountHasKeys || !vAccountOpKeys[params.operationalKey]) {
       return { status: 'success' }
     }
 
@@ -208,8 +194,9 @@ class Account {
       vAccount,
       'removeOperationalAddressTransaction',
       {
-        publicKeyOperationalToRemove: data.operationalKey,
-        ownerOrOperationalToSignTx: vAccountOpKey.publicKey,
+        account: vAccount.address,
+        publicKeyOperationalToRemove: params.operationalKey,
+        ownerOrOperationalToSignTx: vAccount.opKeyPublicKey,
       },
       sponsor
     )
@@ -219,26 +206,26 @@ class Account {
 
   // TODO: validate params
   private _replaceMnemonic = async (
-    data: {
+    params: {
       address: string
       old?: { mnemonic: string }
       new: { mnemonic: string; owner: OwnerType }
     },
     sponsor?: ISponsor
   ) => {
-    const vAccount = await getVAccount(data.address)
+    const vAccount = await getVAccount(params.address)
     if (!vAccount) return { status: 'failed', error: 'Account not found' }
 
-    const vAccountOwner = data.old?.mnemonic
-      ? await keys.generate.keysFromMnemonic(data.old.mnemonic)
+    const vAccountOwner = params.old?.mnemonic
+      ? await keys.generate.keysFromMnemonic(params.old.mnemonic)
       : ((await storage.get(vAccount.ownerPublicKey, '-master-key')) as unknown as IKeypair)
 
-    if (!data.old && !vAccountOwner?.secretKey)
+    if (!params.old && !vAccountOwner?.secretKey)
       return { status: 'failed', error: "Can't find private key in keychain" }
 
-    const vAccountNewOwner = await keys.generate.keysFromMnemonic(data.new.mnemonic)
+    const vAccountNewOwner = await keys.generate.keysFromMnemonic(params.new.mnemonic)
 
-    if (data.new.owner === 'keychain') {
+    if (params.new.owner === 'keychain') {
       storage.set(vAccountNewOwner.publicKey, vAccountNewOwner, '-master-key') // save master key
     }
 
@@ -256,12 +243,12 @@ class Account {
     )
 
     if (response.status === 'success') {
-      vAccount.owner = data.new.owner
+      vAccount.owner = params.new.owner
       vAccount.ownerPublicKey = vAccountNewOwner.publicKey
 
       storage.set(vAccount.address, vAccount) // save vAccount
 
-      if (data.new.owner === 'keychain') {
+      if (params.new.owner === 'keychain') {
         storage.set(
           vAccount.address,
           {
@@ -280,6 +267,7 @@ class Account {
   new = {
     create: this._create,
     import: this._import,
+    initialize: this._initialize,
   }
 
   operational = {
@@ -290,6 +278,14 @@ class Account {
 
   mnemonic = {
     replace: this._replaceMnemonic,
+  }
+
+  get = {
+    info: getAccountInfo,
+    transactions: getAccountTransactions,
+    accountsByMnemonic: getAccountsByMnemonic,
+    accounts: (type: 'all' | 'keychain', network?: NetworkType) =>
+      type === 'all' ? getAllAccounts() : getKeychainAccounts(network),
   }
 }
 

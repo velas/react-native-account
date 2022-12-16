@@ -41,14 +41,13 @@ export interface ISponsor {
   apiPublicKey?: string
 }
 
-// interface IKeypair extends Keypair
-
 export type TransactionType =
   | 'initializeTransaction'
   | 'addOperationalAddressTransaction'
   | 'extendOperationalScopesTransaction'
   | 'removeOperationalAddressTransaction'
   | 'replaceOwnerTransaction'
+  | 'transfer'
 
 export type NetworkType = 'mainnet' | 'testnet' | 'devnet'
 export type OwnerType = 'keychain' | 'mnemonic' | 'google' | 'apple' | 'other'

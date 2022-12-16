@@ -1,6 +1,7 @@
-import config from 'src/config'
-import { storage } from 'src/helpers'
-import { IAccount, IEnvironment, IKeypair, NetworkType } from 'src/typings/types'
+import { APIService } from '../../api'
+import config from '../../config'
+import { keys, storage, web3Instanse } from '../../helpers'
+import { IAccount, IEnvironment, IKeypair, NetworkType } from '../../typings/types'
 
 export const getAllAccounts = async (): Promise<IAccount[]> => {
   const accounts: Array<IAccount> = (await storage.getAll()) || []
@@ -20,11 +21,11 @@ export const getVAccount = async (address: string): Promise<IAccount> => {
   return (await storage.get(address)) as unknown as IAccount
 }
 
-export const getAccountInfo = async (address: string) => {
+export const getAccountInfo = async (params: { address: string; network?: NetworkType }) => {
   try {
-    const vAccount = await getVAccount(address)
-    const env = config[vAccount.network] as unknown as IEnvironment
-    const vAccountData = await env.agent.provider.client.getAccountData(address)
+    const vAccount = await getVAccount(params.address)
+    const env = config.get(params.network || vAccount.network) as unknown as IEnvironment
+    const vAccountData = await env.agent.provider.client.getAccountData(params.address)
 
     const owKeys = vAccountData?.owner_keys
     if (vAccount && owKeys) {
@@ -60,21 +61,14 @@ export const getAccountInfo = async (address: string) => {
   }
 }
 
-//TODO login by seed to diff accounts
-export const getAccountsByMnemonic = async (seed: string, network: NetworkType) => {
-  try {
-    console.log(seed, network)
-    // const { publicKey } = await generateKeysFromMnemonic(seed)
+export const getAccountsByMnemonic = async (params: { mnemonic: string; network: NetworkType }) => {
+  const connection = web3Instanse.getNativeConnection(params.network)
 
-    // const accounts = await backend
-    //   .accounts(publicKey, network)
-    //   .then(data => data?.result?.value || [])
+  const { publicKey } = await keys.generate.keysFromMnemonic(params.mnemonic)
 
-    // return { status: 'success', data: accounts }
-    return { status: 'success' }
-  } catch (_) {
-    return { status: 'failed', error: _ }
-  }
+  const data = await connection.getVelasAccountsByOwnerKey(publicKey)
+
+  return { status: 'success', data }
 }
 
 export const getAccountTransactions = (
@@ -90,13 +84,15 @@ export const getAccountTransactions = (
     onlyNative: boolean
   }
 ) => {
-  // console.log(params, ' = params')
-  console.log(account, params, ' = address')
-  // const api = APIService()
-  // const params: any = { page_number: pageNumber }
-  // if (type) params.type = type
-  // if (contract) params.contract = contract
-  // if (pageSize) params.page_size = pageSize
-  // if (onlyNative) params.only_native_transfers = true
-  // return backend.fetchTransactions(address, params, network)
+  const api = new APIService(config.get(account.network)?.history_host || '')
+
+  const requestParams = {
+    type: params.type,
+    contract: params.contract,
+    page_size: params.pageSize,
+    page_number: params.pageNumber,
+    only_native_transfers: params.onlyNative,
+  }
+
+  return api.getTransactions(account.address, requestParams)
 }

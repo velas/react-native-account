@@ -26,7 +26,7 @@ class APIService {
   getCSRF = async () => this.request('get', '/csrf')
 
   getTransactions = async (address: string, data: any) =>
-    this.request('get', `transactions/${address}`, data)
+    this.request('get', `/transactions/${address}`, data)
 }
 
 export default APIService

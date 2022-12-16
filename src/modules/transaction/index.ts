@@ -1,12 +1,12 @@
-import { APIService } from 'src/api'
-import config from 'src/config'
+import config from '../../config'
+import { getCSRFToken } from '../../helpers'
 import {
   IAccount,
   IEnvironment,
   IMessageResponse,
   ISponsor,
   TransactionType,
-} from 'src/typings/types'
+} from '../../typings/types'
 
 class Transaction {
   send = async (
@@ -15,29 +15,27 @@ class Transaction {
     trasactionData: any,
     sponsor?: ISponsor
   ): Promise<IMessageResponse> => {
-    const env = config[account.network] as IEnvironment
-
+    const env = config.get(account.network) as IEnvironment
     const host = sponsor?.apiHost ?? env.account_host
-    const csrfToken = await this._getCSRFToken(host)
+    const csrfToken = await getCSRFToken(host)
 
-    if (csrfToken.error) {
+    if (csrfToken.error)
       return {
         status: 'failed',
-        error: csrfToken.error.toString().includes('Network Error')
-          ? 'Please check your internet connection and try again'
-          : 'Sponsor service temporary not available, please try again later',
+        error: csrfToken.error,
       }
-    }
 
     try {
       const { success, error }: any = await this._sendTransaction(
         {
+          params: {
+            ...trasactionData,
+            transactions_sponsor_pub_key: sponsor?.apiPublicKey || env.account_payer_address,
+          },
           transaction_name: type,
           csrf_token: csrfToken.token,
-          transactions_sponsor_api_host: sponsor?.apiHost,
+          transactions_sponsor_api_host: host,
           transactions_sponsor_auth_params: sponsor?.authParams,
-          transactions_sponsor_pub_key: sponsor?.apiPublicKey || env.account_payer_address,
-          ...trasactionData,
         },
         env
       )
@@ -50,8 +48,8 @@ class Transaction {
     }
   }
 
-  private _sendTransaction = async (transactionData: any, env: IEnvironment) =>
-    new Promise((resolve) => {
+  private _sendTransaction = async (transactionData: any, env: IEnvironment) => {
+    return new Promise((resolve) => {
       env.agent.provider.client.sendMessage({
         ...transactionData,
         cb: (error: any, success: any) => {
@@ -59,17 +57,6 @@ class Transaction {
         },
       })
     })
-
-  private _getCSRFToken = async (requestUrl: string) => {
-    try {
-      const api = new APIService(requestUrl)
-
-      const { token } = <{ token: string }>await api.getCSRF()
-
-      return { token }
-    } catch (error) {
-      return { error }
-    }
   }
 }
 

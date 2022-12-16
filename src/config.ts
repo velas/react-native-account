@@ -1,15 +1,19 @@
 import Agent from '@velas/account-agent'
 import * as vWeb3 from '@velas/web3'
 import bs58 from 'bs58'
-import { APIService } from 'src/api'
-import { storage } from 'src/helpers'
 import nacl from 'tweetnacl'
+import { APIService } from './api'
+import { storage } from './helpers'
 import { IConfig, IEnvironment, NetworkType } from './typings/types'
 
 class Config {
   devnet?: IEnvironment
   testnet?: IEnvironment
   mainnet?: IEnvironment
+
+  get = (network: NetworkType) => {
+    return this[network]
+  }
 
   init = (config: IConfig, network: NetworkType = 'mainnet') => {
     this[network] = {
@@ -22,7 +26,7 @@ class Config {
         client_provider: vWeb3,
         broadcastTransactionHendler: (host: string, data: any) => {
           const api = new APIService(host)
-          return api.request('post', 'broadcast', data)
+          return api.request('post', '/broadcast', data)
         },
         StorageHandler: () => {},
         KeyStorageHandler: () => ({
@@ -49,12 +53,13 @@ class Config {
 const config = new Config()
 
 export const init = config.init
+export const getConfig = config.get
+
 export const getAgent = (network: NetworkType = 'mainnet') => {
-  return config[network]?.agent
+  return config.get(network)?.agent
 }
 
 export default {
-  devnet: config.devnet,
-  mainnet: config.mainnet,
-  testnet: config.testnet,
+  get: config.get,
+  init: config.init,
 }

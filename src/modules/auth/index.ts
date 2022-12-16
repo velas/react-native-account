@@ -1,17 +1,17 @@
-import { keys, storage } from 'src/helpers'
-import account from 'src/modules/account'
-import { getAccountInfo, getVAccount } from 'src/modules/account/accounts'
-import { IAccount, IKeypair, ISponsor, NetworkType } from 'src/typings/types'
+import { keys, storage } from '../../helpers'
+import account from '../../modules/account'
+import { getAccountInfo, getVAccount } from '../../modules/account/accounts'
+import { IAccount, IKeypair, ISponsor, NetworkType } from '../../typings/types'
 
 class Auth {
   private _loginKeychain = async (
-    data: {
+    params: {
       address: string
       network: NetworkType
     },
     sponsor?: ISponsor
   ) => {
-    const vAccount = (await storage.get(data.address, '-keychain')) as unknown as IAccount
+    const vAccount = (await storage.get(params.address, '-keychain')) as unknown as IAccount
 
     if (!vAccount) return { status: 'failed', error: 'Account not found' }
 
@@ -27,7 +27,10 @@ class Auth {
       const opKey = keys.generate.keys()
       storage.set(opKey.publicKey, opKey, '-op-key')
 
-      const vAccountData = await getAccountInfo(data.address)
+      const vAccountData = await getAccountInfo({
+        address: params.address,
+        network: vAccount.network,
+      })
 
       if (vAccountData.data) {
         const response = await account.operational.addAddress(
@@ -35,7 +38,7 @@ class Auth {
             scopes: [],
             account: vAccount,
             accountSecretKey: vAccountOwner.secretKey,
-            address: data.address,
+            address: params.address,
             operationalKey: opKey.publicKey,
           },
           sponsor
@@ -57,7 +60,7 @@ class Auth {
   }
 
   private _loginByMnemonic = async (
-    data: {
+    params: {
       address: string
       mnemonic: string
       network: NetworkType
@@ -66,13 +69,13 @@ class Auth {
   ) => {
     try {
       const { secretKey, publicKey } = (await keys.generate.keysFromMnemonic(
-        data.mnemonic
+        params.mnemonic
       )) as IKeypair
       const opKey = keys.generate.keys()
 
       const vAccount: IAccount = {
-        address: data.address,
-        network: data.network,
+        address: params.address,
+        network: params.network,
         owner: 'mnemonic',
         ownerPublicKey: publicKey,
         opKeyPublicKey: opKey.publicKey,
@@ -86,7 +89,7 @@ class Auth {
           scopes: [],
           account: vAccount,
           accountSecretKey: secretKey,
-          address: data.address,
+          address: params.address,
           operationalKey: opKey.publicKey,
         },
         sponsor
@@ -103,7 +106,7 @@ class Auth {
   }
 
   private _login = async (
-    data: {
+    params: {
       address: string
       mnemonic?: string
       keychain?: boolean
@@ -111,35 +114,35 @@ class Auth {
     },
     sponsor?: ISponsor
   ) => {
-    const acc = (await storage.get(data.address)) as unknown as IAccount
+    const acc = (await storage.get(params.address)) as unknown as IAccount
     if (acc) {
       return { status: 'failed', error: 'You are already logged in' }
     }
 
-    return data.keychain
-      ? this._loginKeychain({ address: data.address, network: data.network }, sponsor)
+    return params.keychain
+      ? this._loginKeychain({ address: params.address, network: params.network }, sponsor)
       : this._loginByMnemonic(
           {
-            address: data.address,
-            mnemonic: data.mnemonic || '',
-            network: data.network,
+            address: params.address,
+            mnemonic: params.mnemonic || '',
+            network: params.network,
           },
           sponsor
         )
   }
   private _logout = async (
-    data: {
+    params: {
       address: string
       removeFromKeychain?: boolean
     },
     sponsor?: ISponsor
   ) => {
-    const vAccount = await getVAccount(data.address)
+    const vAccount = await getVAccount(params.address)
     if (!vAccount) return { status: 'failed', error: 'Account not found' }
 
     const response = await account.operational.removeAddress(
       {
-        address: data.address,
+        address: params.address,
         operationalKey: vAccount.opKeyPublicKey,
       },
       sponsor
@@ -148,7 +151,7 @@ class Auth {
     if (response.status !== 'success') return response
 
     if (vAccount.owner === 'keychain') {
-      if (data.removeFromKeychain) {
+      if (params.removeFromKeychain) {
         storage.remove(vAccount.address)
         storage.remove(vAccount.address, '-keychain')
       } else {

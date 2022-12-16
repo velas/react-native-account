@@ -2,8 +2,8 @@ import * as bip39 from 'bip39'
 import bs58 from 'bs58'
 import * as ed25519 from 'ed25519-hd-key'
 import { randomBytes } from 'react-native-randombytes'
-import { IKeypair } from 'src/typings/types'
 import nacl from 'tweetnacl'
+import { IKeypair } from '../typings/types'
 
 class Keys {
   private _getDeriveSeed = (seed: string) => {
@@ -43,7 +43,7 @@ class Keys {
     }
   }
 
-  private _generateKeysFromMnemonic = async (mnemonic: string) => {
+  private _generateKeysFromMnemonic = async (mnemonic: string): Promise<IKeypair> => {
     const seed = await bip39.mnemonicToSeed(mnemonic)
     const seedHex = await seed.slice(0, 32).toString('hex')
     const derivedSeed = this._getDeriveSeed(seedHex)
@@ -53,7 +53,6 @@ class Keys {
     const secretKey = bs58.encode(keyPair.secretKey)
 
     return {
-      mnemonic,
       secretKey,
       publicKey,
     }

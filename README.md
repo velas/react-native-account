@@ -3,8 +3,15 @@ Velas Account SDK for React Native
 ## Installation
 
 ```sh
-npm install @velas/react-native-account
+npm install --save @velas/react-native-account
+# OR
+yarn add @velas/react-native-account
 ```
+
+## Example
+
+see https://github.com/velas/velas-account-mobile-demo
+
 
 ## Usage
 
@@ -23,7 +30,3 @@ See the [contributing guide](CONTRIBUTING.md) to learn how to contribute to the 
 ## License
 
 MIT
-
----
-
-Made with [create-react-native-library](https://github.com/callstack/react-native-builder-bob)
