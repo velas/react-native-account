@@ -1,5 +1,6 @@
 module.exports = {
   extends: ['@react-native-community', 'prettier'],
+  ignorePatterns: ['docs/*'],
   rules: {
     'react-native/no-unused-styles': 2,
     'react/jsx-filename-extension': [
