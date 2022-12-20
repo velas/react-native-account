@@ -15,8 +15,8 @@ class Config {
     return this[network]
   }
 
-  init = (config: IConfig, network: NetworkType = 'mainnet') => {
-    this[network] = {
+  initialize = (config: IConfig) => {
+    this[config.network || 'mainnet'] = {
       ...config,
       web3Connection: new vWeb3.Connection(`${config.node_host}/rpc`),
       agent: new Agent({
@@ -52,7 +52,7 @@ class Config {
 
 const config = new Config()
 
-export const init = config.init
+export const initialize = config.initialize
 export const getConfig = config.get
 
 export const getAgent = (network: NetworkType = 'mainnet') => {
@@ -61,5 +61,5 @@ export const getAgent = (network: NetworkType = 'mainnet') => {
 
 export default {
   get: config.get,
-  init: config.init,
+  initialize: config.initialize,
 }

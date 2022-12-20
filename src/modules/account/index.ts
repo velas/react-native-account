@@ -6,8 +6,8 @@ import transaction from '../../modules/transaction'
 import { IAccount, IKeypair, ISponsor, NetworkType, OwnerType } from '../../typings/types'
 import {
   getAccountInfo,
-  getAccountsByMnemonic,
   getAccountTransactions,
+  getAccountsByMnemonic,
   getAllAccounts,
   getKeychainAccounts,
   getVAccount,
@@ -263,7 +263,6 @@ class Account {
 
     return response
   }
-
   new = {
     create: this._create,
     import: this._import,

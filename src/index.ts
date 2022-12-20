@@ -8,6 +8,6 @@ if (!global.atob) {
   global.atob = decode
 }
 
-export { getAgent, getConfig, init } from './config'
+export { getAgent, getConfig, initialize } from './config'
 export { keys, storage, validator, web3Instanse } from './helpers'
 export { account, auth, balance, transfer } from './modules'

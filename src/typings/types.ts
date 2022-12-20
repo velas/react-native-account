@@ -6,6 +6,7 @@ export interface IConfig {
   evm_explorer: string
   account_host: string
   history_host: string
+  network: NetworkType
   account_contract: string
   account_payer_address: string
 }
