@@ -19,16 +19,13 @@ class Transfer {
     sponsor?: ISponsor
   ) => {
     const feePayer = new PublicKey(params.network.account_payer_address)
-    const vAccountIsInited = params.vAccountInfo.data?.owner_keys?.length > 0
 
     try {
-      const transaction = params.network.agent.client.transfer({
+      const transaction = await params.network.agent.provider.client.transfer({
         account: params.vAccount.address,
         fromAccountPubKey: params.vAccount.address,
         toPubKey: params.toAddress,
-        ownerOrOprationalPubKey: vAccountIsInited
-          ? params.vAccount.ownerPublicKey
-          : params.vAccount.opKeySecretKey,
+        ownerOrOprationalPubKey: params.vAccount.opKeySecretKey,
         lamports: params.amount,
         transactions_sponsor_pub_key: sponsor?.apiPublicKey || params.network.account_payer_address,
       })
@@ -39,7 +36,7 @@ class Transfer {
       transaction.recentBlockhash = blockhash
       transaction.feePayer = feePayer
 
-      const response = params.network.agent.provider.client.signAndBroadcastWithKey({
+      const response = await params.network.agent.provider.client.signAndBroadcastWithKey({
         csrf_token: params.csrfToken,
         account: params.vAccount.address,
         host: params.network.account_host,
@@ -78,7 +75,7 @@ class Transfer {
       gas: web3.utils.toHex(50000),
       gasPrice: web3.utils.toHex(2000000001),
       from: accInfo?.account_key_evm,
-      op_key: params.vAccount.opKeyPublicKey || params.vAccount.ownerPublicKey,
+      op_key: params.vAccount.opKeyPublicKey,
       host: params.network.account_host,
       transactions_sponsor_pub_key: sponsor?.apiPublicKey || params.network.account_payer_address,
     }
@@ -173,6 +170,13 @@ class Transfer {
       address: params.address,
       network: vAccount.network,
     })
+
+    const vAccountIsInited = vAccountInfo.data?.owner_keys?.length > 0
+
+    if (!vAccountIsInited)
+      await account.new.initialize({
+        address: params.address,
+      })
 
     if (csrfToken.error)
       return {
