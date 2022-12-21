@@ -1,17 +1,28 @@
 {
   "tags": {
-    "allowUnknownTags": true,
-    "dictionaries": ["jsdoc", "closure"]
+    "allowUnknownTags": ["optional"]
   },
   "source": {
-    "include": ["src"],
-    "includePattern": ".+\\.ts(doc|x)?$",
-    "excludePattern": ".+\\.(test|spec).ts"
+    "include": ["./src"],
+    "includePattern": "\\.(jsx|js|ts|tsx)$"
   },
-  "plugins": ["plugins/markdown", "better-docs/component", "node_modules/jsdoc-babel"],
+  "plugins": [
+    "better-docs/component",
+    "better-docs/category",
+    "better-docs/typescript",
+    "node_modules/jsdoc-babel",
+    "plugins/markdown"
+  ],
   "templates": {
     "better-docs": {
-      "name": "My React components"
+      "name": "Velas Account React Native SDK",
+      "modules": "Modules",
+            "navLinks": [
+                {
+                    "label": "Github",
+                    "href": "https://github.com/velas/react-native-account"
+                }
+            ]
     }
   },
   "babel": {
@@ -21,6 +32,7 @@
     "presets": ["module:metro-react-native-babel-preset"]
   },
   "opts": {
+    "encoding": "utf8",
     "template": "node_modules/better-docs",
     "destination": "docs",
     "recurse": true,
