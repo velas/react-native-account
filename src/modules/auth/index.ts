@@ -115,6 +115,7 @@ class Auth {
     sponsor?: ISponsor
   ) => {
     const acc = (await storage.get(params.address)) as unknown as IAccount
+
     if (acc) {
       return { status: 'failed', error: 'You are already logged in' }
     }
@@ -157,7 +158,7 @@ class Auth {
       } else {
         vAccount.logouted = true
 
-        storage.set(vAccount.address, account) // save account to storage
+        storage.set(vAccount.address, vAccount) // save account to storage
       }
     } else {
       await storage.remove(vAccount.address)
