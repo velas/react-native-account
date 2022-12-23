@@ -5,6 +5,7 @@ import { getCSRFToken, web3Instanse } from '../../helpers'
 import { account, balance } from '../../modules'
 import { getVAccount } from '../../modules/account/accounts'
 import { IAccount, IEnvironment, ISponsor } from '../../typings/types'
+import abi from './_abi'
 
 class Transfer {
   private _native = async (
@@ -91,7 +92,7 @@ class Transfer {
 
     if (params.contract) {
       // @ts-ignore
-      const contractWeb3 = new web3.eth.Contract(abi, contractAddress)
+      const contractWeb3 = new web3.eth.Contract(abi, params.contract)
 
       const decimals = await contractWeb3.methods.decimals().call()
       const amount = fromExponential(Number(params.amount) * Math.pow(10, decimals))
