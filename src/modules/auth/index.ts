@@ -116,7 +116,7 @@ class Auth {
   ) => {
     const acc = (await storage.get(params.address)) as unknown as IAccount
 
-    if (acc) {
+    if (acc && !acc.logouted) {
       return { status: 'failed', error: 'You are already logged in' }
     }
 
